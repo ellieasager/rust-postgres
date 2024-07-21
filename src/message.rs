@@ -37,7 +37,7 @@ pub async fn create_message(
 
     let id = sqlx::types::Uuid::from_u128(uuid::Uuid::new_v4().as_u128());
     let row: (sqlx::types::Uuid,) = sqlx::query_as(
-        "insert into messages (id, content) values ($1, $2) returning id AS \"id: Uuid\"",
+        "insert into messages (id, content) values ($1, $2) returning id",
     )
     .bind(id.to_owned())
     .bind(req.content.to_owned())
