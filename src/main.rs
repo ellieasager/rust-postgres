@@ -1,109 +1,17 @@
-mod message;
-mod simple_message;
-
-use actix_web::{web, App, HttpServer, Responder};
+use actix_web::{web, App, HttpServer};
 use dotenv::dotenv;
-use serde::Deserialize;
 use sqlx::pool::Pool;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::Postgres;
 use std::env;
 
-use message::{ListResponse, Message};
-use simple_message::{ListSimpleResponse, SimpleMessage};
+mod common;
+mod message;
+mod simple_message;
 
-struct AppState {
-    db_pool: Pool<Postgres>,
-}
-
-#[derive(Deserialize)]
-struct CreateRequest {
-    content: String,
-}
-
-async fn create_simple_message(
-    data: web::Data<AppState>,
-    req: web::Json<CreateRequest>,
-) -> impl Responder {
-    println!("creating a simple_message");
-
-    let row: (i64,) =
-        sqlx::query_as("insert into simple_messages (content) values ($1) returning id")
-            .bind(req.content.to_owned())
-            .fetch_one(&data.db_pool)
-            .await
-            .expect("postgres insertion error");
-
-    println!("row INSERTED: {:?}", row);
-    let simple_message = SimpleMessage {
-        id: row.0,
-        content: req.content.to_owned(),
-    };
-    println!("created a simple_message");
-
-    web::Json(simple_message)
-}
-
-async fn create_message(
-    data: web::Data<AppState>,
-    req: web::Json<CreateRequest>,
-) -> impl Responder {
-    println!("creating a message");
-
-    let id = sqlx::types::Uuid::from_u128(uuid::Uuid::new_v4().as_u128());
-    let row: (sqlx::types::Uuid,) = sqlx::query_as(
-        "insert into messages (id, content) values ($1, $2) returning id AS \"id: Uuid\"",
-    )
-    .bind(id.to_owned())
-    .bind(req.content.to_owned())
-    .fetch_one(&data.db_pool)
-    .await
-    .expect("postgres insertion error");
-
-    println!("row INSERTED: {:?}", row);
-    let message = Message {
-        id,
-        content: req.content.to_owned(),
-    };
-    println!("created a message");
-
-    web::Json(message)
-}
-
-async fn list_simple_messages(data: web::Data<AppState>) -> impl Responder {
-    println!("listing messages:");
-
-    let select_query =
-        sqlx::query_as::<_, SimpleMessage>("SELECT id, content FROM simple_messages");
-    let simple_messages: Vec<SimpleMessage> = select_query
-        .fetch_all(&data.db_pool)
-        .await
-        .expect("postgres selection error");
-    println!(
-        "\n\n=== select simple_messages with query.map...: \n{:?}",
-        simple_messages
-    );
-
-    web::Json(ListSimpleResponse {
-        messages: simple_messages,
-    })
-}
-
-async fn list_messages(data: web::Data<AppState>) -> impl Responder {
-    println!("listing messages:");
-
-    let select_query = sqlx::query_as::<_, Message>("SELECT id, content FROM messages");
-    let messages: Vec<Message> = select_query
-        .fetch_all(&data.db_pool)
-        .await
-        .expect("postgres selection error");
-    println!(
-        "\n\n=== select messages with query.map...: \n{:?}",
-        messages
-    );
-
-    web::Json(ListResponse { messages })
-}
+use common::AppState;
+use message::{create_message, list_messages};
+use simple_message::{create_simple_message, list_simple_messages};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
