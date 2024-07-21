@@ -1,10 +1,7 @@
-use actix_web::{
-    body::BoxBody, http::header::ContentType, web, App, HttpRequest, HttpResponse, HttpServer,
-    Responder,
-};
+use actix_web::{web, App, HttpServer, Responder};
 use dotenv::dotenv;
-use serde::{Deserialize, Serialize, Serializer};
 use serde::ser::SerializeStruct;
+use serde::{Deserialize, Serialize, Serializer};
 use sqlx::pool::Pool;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::FromRow;
@@ -40,35 +37,38 @@ struct CreateRequest {
 }
 
 #[derive(Serialize)]
-struct ListResponse {
-    texts: Vec<Text>,
+struct CreateResponse {
+    text: Text,
+    error: String,
 }
 
-impl Responder for ListResponse {
-    type Body = BoxBody;
-
-    fn respond_to(self, _req: &HttpRequest) -> HttpResponse<Self::Body> {
-        let body = serde_json::to_string(&self).unwrap();
-
-        // Create response and set content type
-        HttpResponse::Ok()
-            .content_type(ContentType::json())
-            .body(body)
-    }
+#[derive(Serialize)]
+struct ListResponse {
+    texts: Vec<Text>,
+    error: String,
 }
 
 async fn create(data: web::Data<AppState>, req: web::Json<CreateRequest>) -> impl Responder {
     println!("creating a text");
+    let mut error_message = "".to_string();
 
     // let id = Uuid::new_v4().to_string();
-    let id = sqlx::types::Uuid::from_u128(uuid::Uuid::new_v4().as_u128()); 
+    let id = sqlx::types::Uuid::from_u128(uuid::Uuid::new_v4().as_u128());
 
-    let row: (sqlx::types::Uuid,) = sqlx::query_as("insert into texts (id, content) values ($1, $2) returning id AS \"id: Uuid\"")
-        .bind(id.to_owned())
-        .bind(req.content.to_owned())
-        .fetch_one(&data.db_pool)
-        .await
-        .expect("postgres insertion error");
+    let row: (sqlx::types::Uuid,) = sqlx::query_as(
+        "insert into texts (id, content) values ($1, $2) returning id AS \"id: Uuid\"",
+    )
+    .bind(id.to_owned())
+    .bind(req.content.to_owned())
+    .fetch_one(&data.db_pool)
+    .await
+    .map_err(|e| {
+        error_message = e.to_string();
+        println!("{:?}", error_message);
+        let result = (sqlx::types::Uuid::default(),);
+        result
+    })
+    .unwrap();
 
     println!("row INSERTED: {:?}", row);
     let text = Text {
@@ -77,20 +77,33 @@ async fn create(data: web::Data<AppState>, req: web::Json<CreateRequest>) -> imp
     };
     println!("created a text");
 
-    web::Json(text)
+    web::Json(CreateResponse {
+        text,
+        error: error_message,
+    })
 }
 
 async fn list(data: web::Data<AppState>) -> impl Responder {
     println!("listing texts:");
 
+    let mut error_message = "".to_string();
     let select_query = sqlx::query_as::<_, Text>("SELECT id, content FROM texts");
     let texts: Vec<Text> = select_query
         .fetch_all(&data.db_pool)
         .await
-        .expect("postgres fancy selection error");
+        .map_err(|e| {
+            error_message = e.to_string();
+            println!("{:?}", error_message);
+            let result: Vec<Text> = Vec::new();
+            result
+        })
+        .unwrap();
     println!("\n=== select texts with query.map...: \n{:?}", texts);
 
-    web::Json(ListResponse { texts })
+    web::Json(ListResponse {
+        texts,
+        error: error_message,
+    })
 }
 
 #[actix_web::main]
