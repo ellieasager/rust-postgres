@@ -1,49 +1,16 @@
+mod message;
+mod simple_message;
+
 use actix_web::{web, App, HttpServer, Responder};
 use dotenv::dotenv;
-use serde::ser::SerializeStruct;
-use serde::{Deserialize, Serialize, Serializer};
+use serde::Deserialize;
 use sqlx::pool::Pool;
 use sqlx::postgres::PgPoolOptions;
-use sqlx::FromRow;
 use sqlx::Postgres;
 use std::env;
-use uuid::Uuid;
 
-#[derive(Debug, FromRow)]
-struct SimpleMessage {
-    id: i64,
-    content: String,
-}
-
-#[derive(Debug, FromRow)]
-struct Message {
-    id: Uuid,
-    content: String,
-}
-
-impl Serialize for SimpleMessage {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut s = serializer.serialize_struct("SimpleMessage", 2)?;
-        s.serialize_field("id", &self.id.to_string())?;
-        s.serialize_field("content", &self.content)?;
-        s.end()
-    }
-}
-
-impl Serialize for Message {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut s = serializer.serialize_struct("Message", 2)?;
-        s.serialize_field("id", &self.id.to_string())?;
-        s.serialize_field("content", &self.content)?;
-        s.end()
-    }
-}
+use message::{ListResponse, Message};
+use simple_message::{ListSimpleResponse, SimpleMessage};
 
 struct AppState {
     db_pool: Pool<Postgres>,
@@ -52,16 +19,6 @@ struct AppState {
 #[derive(Deserialize)]
 struct CreateRequest {
     content: String,
-}
-
-#[derive(Serialize)]
-struct ListSimpleResponse {
-    messages: Vec<SimpleMessage>,
-}
-
-#[derive(Serialize)]
-struct ListResponse {
-    messages: Vec<Message>,
 }
 
 async fn create_simple_message(
@@ -123,7 +80,7 @@ async fn list_simple_messages(data: web::Data<AppState>) -> impl Responder {
         .await
         .expect("postgres selection error");
     println!(
-        "\n=== select simple_messages with query.map...: \n{:?}",
+        "\n\n=== select simple_messages with query.map...: \n{:?}",
         simple_messages
     );
 
@@ -140,7 +97,10 @@ async fn list_messages(data: web::Data<AppState>) -> impl Responder {
         .fetch_all(&data.db_pool)
         .await
         .expect("postgres selection error");
-    println!("\n=== select messages with query.map...: \n{:?}", messages);
+    println!(
+        "\n\n=== select messages with query.map...: \n{:?}",
+        messages
+    );
 
     web::Json(ListResponse { messages })
 }
