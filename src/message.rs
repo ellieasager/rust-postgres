@@ -7,12 +7,14 @@ use uuid::Uuid;
 
 use crate::common::AppState;
 
+// `FromRow` is needed so that we can use method `fetch_all` to fetch messages from db
 #[derive(Debug, FromRow)]
 pub struct Message {
     pub id: Uuid,
     pub content: String,
 }
 
+// This is needed to satisfy the `Responder` trait
 impl Serialize for Message {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
