@@ -7,11 +7,9 @@ use std::env;
 
 mod common;
 mod message;
-mod simple_message;
 
 use common::AppState;
 use message::{create_message, list_messages};
-use simple_message::{create_simple_message, list_simple_messages};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -27,7 +25,6 @@ async fn main() -> std::io::Result<()> {
         .expect("postgres connection error");
 
     init_messages_table(&pool).await;
-    init_simple_messages_table(&pool).await;
 
     let data = web::Data::new(AppState { db_pool: pool });
     println!("Connection to the database established!");
@@ -35,30 +32,12 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(data.clone())
-            .route(
-                "simple_messages/create",
-                web::post().to(create_simple_message),
-            )
-            .route("simple_messages/list", web::get().to(list_simple_messages))
             .route("messages/create", web::post().to(create_message))
             .route("messages/list", web::get().to(list_messages))
     })
     .bind(("127.0.0.1", 8080))?
     .run()
     .await
-}
-
-async fn init_simple_messages_table(pool: &Pool<Postgres>) -> () {
-    sqlx::query(
-        r#"
-    CREATE TABLE IF NOT EXISTS simple_messages (
-      id bigserial,
-      content text
-    );"#,
-    )
-    .execute(pool)
-    .await
-    .expect("postgres simple_messages_table creation error");
 }
 
 async fn init_messages_table(pool: &Pool<Postgres>) -> () {

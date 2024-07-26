@@ -1,10 +1,11 @@
 use actix_web::{web, Responder};
 use serde::ser::SerializeStruct;
+use serde::Deserialize;
 use serde::{Serialize, Serializer};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-use crate::common::{AppState, CreateRequest};
+use crate::common::AppState;
 
 #[derive(Debug, FromRow)]
 pub struct Message {
@@ -24,6 +25,11 @@ impl Serialize for Message {
     }
 }
 
+#[derive(Deserialize)]
+pub struct CreateRequest {
+    pub content: String,
+}
+
 #[derive(Serialize)]
 pub struct ListResponse {
     pub messages: Vec<Message>,
@@ -36,14 +42,13 @@ pub async fn create_message(
     println!("creating a message");
 
     let id = sqlx::types::Uuid::from_u128(uuid::Uuid::new_v4().as_u128());
-    let row: (sqlx::types::Uuid,) = sqlx::query_as(
-        "insert into messages (id, content) values ($1, $2) returning id",
-    )
-    .bind(id.to_owned())
-    .bind(req.content.to_owned())
-    .fetch_one(&data.db_pool)
-    .await
-    .expect("postgres insertion error");
+    let row: (sqlx::types::Uuid,) =
+        sqlx::query_as("insert into messages (id, content) values ($1, $2) returning id")
+            .bind(id.to_owned())
+            .bind(req.content.to_owned())
+            .fetch_one(&data.db_pool)
+            .await
+            .expect("postgres insertion error");
 
     println!("row INSERTED: {:?}", row);
     let message = Message {
