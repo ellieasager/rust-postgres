@@ -1,6 +1,6 @@
 # Demo of Rust + PostgreSQL + Uuid
  
-This is companion code to my article on Medium. It shows how you can use `sqlx` library when you choose to use `Uuid` as your `id` type rather than an integer.
+This is companion code to [my article on dev.to](https://dev.to/ellie_sager_elliecat/rusty-recipies-sqlx-uuid-477m). It shows how you can use `sqlx` library when you choose to use `Uuid` as your `id` type rather than an integer.
 
 
 ## SETUP
