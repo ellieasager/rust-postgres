@@ -3,7 +3,7 @@ use dotenv::dotenv;
 use sqlx::pool::Pool;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::Postgres;
-use std::env;
+// use std::env;
 
 mod common;
 mod message;
@@ -17,10 +17,11 @@ async fn main() -> std::io::Result<()> {
 
     dotenv().ok();
 
-    let db_url = env::var("DATABASE_URL").expect("Database url not set in .env file");
+    // let db_url = env::var("DATABASE_URL").expect("Database url not set in .env file");
+    let db_url = "postgres://postgres:postgres@localhost:5432/messages";
     let pool = PgPoolOptions::new()
         .max_connections(5)
-        .connect(db_url.as_str())
+        .connect(db_url)
         .await
         .expect("postgres connection error");
 
