@@ -30,7 +30,7 @@ Let me know if you have any issues.
 
 ### Rust <--> Postman
 
-1. Go to your web browser and type `http://localhost:8080/` - you you get "Hello World!" message - great. If you receive any kind of error instead, like "page not found" or something else - make sure your docker container is running and not printing any errors in the terminal.
+1. Go to your web browser and type `http://localhost:8080/` - if you get "Hello World!" message - great. If you receive any kind of error instead, like "page not found" or something else - make sure your docker container is running and not printing any errors in the terminal.
 
 2. Now go to Postman. If you have imported my collection `rest-postgres.postman_collection.json` - you probably know what to do. No need to read the rest of this README.  
 If not - you'll have to create two requests.  
