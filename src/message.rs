@@ -1,4 +1,4 @@
-use actix_web::{web, Responder, ResponseError};
+use actix_web::{get, post, web, Responder, ResponseError};
 use serde::ser::SerializeStruct;
 use serde::Deserialize;
 use serde::{Serialize, Serializer};
@@ -47,6 +47,7 @@ pub struct ListResponse {
     pub messages: Vec<Message>,
 }
 
+#[post("/messages/create")]
 pub async fn create_message(
     data: web::Data<AppState>,
     req: web::Json<CreateRequest>,
@@ -55,11 +56,11 @@ pub async fn create_message(
 
     let id = sqlx::types::Uuid::from_u128(uuid::Uuid::new_v4().as_u128());
     let response: Result<(sqlx::types::Uuid,), sqlx::Error> =
-    sqlx::query_as("insert into messages (id, content) values ($1, $2) returning id")
-        .bind(id.to_owned())
-        .bind(req.content.to_owned())
-        .fetch_one(&data.db_pool)
-        .await;
+        sqlx::query_as("insert into messages (id, content) values ($1, $2) returning id")
+            .bind(id.to_owned())
+            .bind(req.content.to_owned())
+            .fetch_one(&data.db_pool)
+            .await;
 
     match response {
         Ok(row) => {
@@ -69,16 +70,18 @@ pub async fn create_message(
                 content: req.content.to_owned(),
             };
             Ok(web::Json(message))
-        }, 
+        }
         Err(sqlx_error) => {
             println!(
                 "\n\n=== error creating a message \n{:?}",
-                sqlx_error.to_string());
+                sqlx_error.to_string()
+            );
             Err(MyError(sqlx_error.to_string()))
-        },
+        }
     }
 }
 
+#[get("/messages")]
 pub async fn list_messages(data: web::Data<AppState>) -> impl Responder {
     println!("listing messages:");
 
@@ -87,16 +90,15 @@ pub async fn list_messages(data: web::Data<AppState>) -> impl Responder {
 
     match response {
         Ok(messages) => {
-            println!(
-                "\n\n=== select messages: \n{:?}",
-                messages);
+            println!("\n\n=== select messages: \n{:?}", messages);
             Ok(web::Json(ListResponse { messages }))
-        },
+        }
         Err(sqlx_error) => {
             println!(
                 "\n\n=== error selecting messages: \n{:?}",
-                sqlx_error.to_string());
+                sqlx_error.to_string()
+            );
             Err(MyError(sqlx_error.to_string()))
-        },
+        }
     }
 }

@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 docker volume create db-data
 
 # create the network
@@ -13,12 +12,12 @@ docker run --rm -d --mount \
   --name db \
   -e POSTGRES_PASSWORD=postgres \
   -e POSTGRES_DB=messages \
-  postgres
+  postgres:17.0
 
 # # pull postgres image
 # docker pull postgres:17.0
 
-# build the main container
+# build the app container
 docker build -t elliecat/rust-postgres .
 
 docker run \
@@ -33,6 +32,20 @@ docker run \
   -e ADDRESS=0.0.0.0:8080 \
   -e RUST_LOG=debug \
   rust-backend-image
+
+
+  docker run \
+  --rm -d \
+  --network postgresnet \
+  --name rust-postgres \
+  -p 3001:8080 \
+  -e PG_DBNAME=messages \
+  -e PG_HOST=db \
+  -e PG_USER=postgres \
+  -e PG_PASSWORD=postgres \
+  -e ADDRESS=0.0.0.0:8080 \
+  -e RUST_LOG=debug \
+  elliecat/rust-postgres
 
 
 # start the postgres container

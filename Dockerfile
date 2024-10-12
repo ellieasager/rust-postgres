@@ -25,7 +25,7 @@ RUN --mount=type=bind,source=src,target=src \
     --mount=type=bind,source=Cargo.lock,target=Cargo.lock \
     --mount=type=cache,target=/app/target/ \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
-    --mount=type=bind,source=migrations,target=migrations \
+    --mount=type=bind,source=db/migrations,target=migrations \
     <<EOF
 set -e
 cargo build --locked --release
@@ -44,9 +44,6 @@ EOF
 # reproducability is important, consider using a digest
 # (e.g.,    debian@sha256:ac707220fbd7b67fc19b112cee8170b41a9e97f703f588b2cdbbcdcecdd8af57).
 FROM debian:bullseye-slim AS final
-
-# # not sure about this
-# COPY messages.sql /docker-entrypoint-initdb.d/
 
 # Create a non-privileged user that the app will run under.
 # See https://docs.docker.com/develop/develop-images/dockerfile_best-practices/   #user
