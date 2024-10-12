@@ -1,6 +1,6 @@
 use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
 use dotenv::dotenv;
-use sqlx::postgres::PgPoolOptions;
+use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use std::env;
 
 mod common;
@@ -15,7 +15,6 @@ async fn main() -> std::io::Result<()> {
 
     dotenv().ok();
 
-    // let db_url = env::var("DATABASE_URL").expect("Database url not set in .env file");
     let db_url = db_url();
     let pool = PgPoolOptions::new()
         .max_connections(5)
@@ -23,8 +22,10 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("postgres connection error");
 
-    let data = web::Data::new(AppState { db_pool: pool });
+    init_messages_table(&pool).await;
     println!("Connection to the database established!");
+
+    let data = web::Data::new(AppState { db_pool: pool });
 
     HttpServer::new(move || {
         App::new()
@@ -48,6 +49,19 @@ fn db_url() -> String {
 
 fn address() -> String {
     env::var("ADDRESS").unwrap_or_else(|_| "127.0.0.1:8080".into())
+}
+
+async fn init_messages_table(pool: &Pool<Postgres>) {
+    sqlx::query(
+        r#"
+    CREATE TABLE IF NOT EXISTS messages (
+      id uuid,
+      content text
+    );"#,
+    )
+    .execute(pool)
+    .await
+    .expect("postgres messages_table creation error");
 }
 
 #[get("/")]
