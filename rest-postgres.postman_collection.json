@@ -41,15 +41,14 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:8080/messages/list",
+					"raw": "http://localhost:8080/messages",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
 					"port": "8080",
 					"path": [
-						"messages",
-						"list"
+						"messages"
 					]
 				}
 			},
